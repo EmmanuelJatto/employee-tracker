@@ -1,5 +1,6 @@
 const { Pool} = require('pg');
 const inquirer = require('inquirer');
+require('dotenv').config();
 
 const pool = new Pool(
     {
