@@ -56,20 +56,20 @@ const initialPromptUser = () => {
                 },
             ]
         }
-    ]).then((res) => {
-        if (res === 'VIEW_DEPARTMENTS') {
+    ]).then(({ initialOptions }) => {
+        if (initialOptions === 'VIEW_DEPARTMENTS') {
             viewDepartments();
-        } else if (res === 'VIEW_ROLES') {
+        } else if (initialOptions === 'VIEW_ROLES') {
             viewRoles();
-        } else if (res === 'VIEW_EMPLOYEES') {
+        } else if (initialOptions === 'VIEW_EMPLOYEES') {
             viewEmployees();
-        } else if (res === 'ADD_DEPARTMENT') {
+        } else if (initialOptions === 'ADD_DEPARTMENT') {
             addDepartment();
-        } else if (res === 'ADD_ROLE') {
+        } else if (initialOptions === 'ADD_ROLE') {
             addRole();
-        } else if (res === 'ADD_EMPLOYEE') {
+        } else if (initialOptions === 'ADD_EMPLOYEE') {
             addEmployee();
-        } else if (res === 'UPDATE_EMPLOYEE_ROLE'){
+        } else if (initialOptions === 'UPDATE_EMPLOYEE_ROLE'){
             updateEmployeeRole();
         } else {
             pool.end();
@@ -83,11 +83,13 @@ const viewDepartments = () => {
 
     const sql = `SELECT * FROM department`;
 
-    pool.query(sql, (err, {rows}) => {
+    pool.query(sql, (err, data) => {
         if (err) {
             console.log(err);
+            return;
         }
-        console.table(rows);
+        console.table(data.rows);
+        initialPromptUser();
     })
 }
 
@@ -96,11 +98,12 @@ const viewRoles = () => {
 
     const sql = `SELECT * FROM roles`;
 
-    pool.query(sql, (err, {rows}) => {
+    pool.query(sql, (err, data) => {
         if (err) {
             console.log(err);
         }
-        console.table(rows);
+        console.table(data.rows);
+        initialPromptUser();
     })
 }
 
@@ -109,11 +112,12 @@ const viewEmployees = () => {
 
     const sql = `SELECT * FROM employee`;
 
-    pool.query(sql, (err, {rows}) => {
+    pool.query(sql, (err, data) => {
         if (err) {
             console.log(err);
         }
-        console.table(rows);
+        console.table(data.rows);
+        initialPromptUser();
     })
 }
 
@@ -136,6 +140,7 @@ const addDepartment = () => {
                 console.log(err)
             }
             console.table(res);
+            initialPromptUser();
     })
     })
 }
@@ -170,6 +175,7 @@ const addRole = () => {
                 console.log(err);
             }
             console.table(res);
+            initialPromptUser();
     });
     });
 }
@@ -189,27 +195,89 @@ const addEmployee = () => {
         {
             type: 'input',
             name: 'employeeRole',
-            message: "What is the employee's role?",
+            message: "What is the employee's role id?",
         },
         {
             type: 'input',
             name: 'manager',
-            message: "Who is the employee's manager?",
+            message: "Who is the employee's manager id?",
         },
     ]).then((res) => {
         const sql = `INSERT INTO employee SET ?`
-
+        
         pool.query(sql, {
             first_name: res.first_name,
             last_name: res.last_name,
-            //role_id
-            //manager_id
+            role_id: res.employeeRole,
+            manager_id: res.manager,
         }, 
         (err, res) => {
             if (err) {
                 console.log(err)
             }
             console.table(res);
+            initialPromptUser();
     });
     });
+}
+
+const updateEmployeeRole = () => {
+
+    const sql = `SELECT * FROM employee`;
+
+    pool.query(sql, (err, {rows}) => {
+        if (err) {
+            console.log(err);
+        }
+
+        const employees = rows.map((person) => {
+            return {
+                value: person.id,
+                name: `${person.first_name} ${person.last_name}`
+            }
+        });
+
+        inquirer.prompt([
+            {
+                type: 'list',
+                name: 'employee',
+                choices: employees
+            }
+        ]).then((val) => {
+            const employeeId = val.employee;
+
+            const sql = `SELECT * FROM roles`;
+        
+            pool.query(sql, (err, {rows}) => {
+                if (err) {
+                    console.log(err);
+                }
+    
+                const roles = rows.map((role) => {
+                    return {
+                        value: role.id,
+                        name: role.title
+                    }
+                });
+
+                inquirer.prompt([
+                    {
+                        type: 'list',
+                        name: 'role',
+                        choices: roles
+                    }
+                ]).then((answerVal) => {
+                    const roleId = answerVal.role;
+
+                    console.log('employeeId', employeeId)
+                    console.log('roleId', roleId);
+
+
+                });
+                
+            })
+        });
+
+    })
+
 }
